@@ -1,0 +1,50 @@
+name: Hunt Oracle free server
+
+on:
+  schedule:
+    # shortcut: every 30 min keeps a private repo inside GitHub's 2,000 free minutes/month; make the repo public to run every 5 min
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  actions: write
+
+concurrency:
+  group: hunt
+  cancel-in-progress: false
+
+jobs:
+  hunt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet oci==2.*
+      - run: python hunter.py --self-test
+      - id: hunt
+        run: python hunter.py
+        env:
+          OCI_TENANCY_OCID: ocid1.tenancy.oc1..aaaaaaaa6oqshr2yitxerd4okrxuo6qqfnccjz74xqyomwkfsw4xgpe446va
+          OCI_USER_OCID: ocid1.user.oc1..aaaaaaaanvvlkuppjhrdq6wx24hmgjewnz6j42dudli544fojljqu2telesa
+          OCI_FINGERPRINT: "90:7b:2d:3a:42:72:8a:e4:5c:3d:d8:34:e6:6f:47:72"
+          OCI_REGION: ap-hyderabad-1
+          OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+          SSH_PUBLIC_KEY: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPFiyf7caCaq3iKZYzTT/64MRFMVO0MEVGNXnQSK5GVt ritik-oracle-free-server
+      - name: Notify and stop hunting
+        if: steps.hunt.outputs.created == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IP: ${{ steps.hunt.outputs.ip }}
+        run: |
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title "Oracle free server is ready: $IP" \
+            --body "Your Always Free server (2 OCPU / 12 GB / 200 GB, Ubuntu 24.04) is running in Hyderabad.
+
+          Log in with: \`ssh -i oracle-free-server.key ubuntu@$IP\`
+
+          Ports 22, 80 and 443 are open in Oracle's firewall. This workflow has now disabled itself."
+          gh workflow disable hunt.yml --repo "$GITHUB_REPOSITORY"
