@@ -14,6 +14,7 @@ NAME = "free-server"
 SHAPE = "VM.Standard.A1.Flex"
 OCPUS, MEMORY_GB, BOOT_GB = 2, 12, 200  # the whole Always Free A1 allowance
 VCN_NAME = "free-server-vcn"
+ATTEMPTS, GAP_SECONDS = 4, 60  # ~1 try/minute: about as fast as Oracle tolerates before "too many requests"
 # Oracle's Ubuntu images block 80/443 in iptables; open them on first boot.
 OPEN_WEB_PORTS = base64.b64encode(b"""#!/bin/bash
 iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
@@ -129,19 +130,24 @@ def main():
     image_id = ubuntu_image(compute, tenancy)
     ad = ident.list_availability_domains(tenancy).data[0].name
 
-    try:
-        inst = compute.launch_instance(oci.core.models.LaunchInstanceDetails(
-            compartment_id=tenancy, availability_domain=ad, display_name=NAME, shape=SHAPE,
-            shape_config=oci.core.models.LaunchInstanceShapeConfigDetails(ocpus=OCPUS, memory_in_gbs=MEMORY_GB),
-            source_details=oci.core.models.InstanceSourceViaImageDetails(image_id=image_id, boot_volume_size_in_gbs=BOOT_GB),
-            create_vnic_details=oci.core.models.CreateVnicDetails(subnet_id=subnet_id, assign_public_ip=True),
-            metadata={"ssh_authorized_keys": os.environ["SSH_PUBLIC_KEY"], "user_data": OPEN_WEB_PORTS})).data
-    except oci.exceptions.ServiceError as e:
-        if is_capacity_error(e):
-            print(f"Out of capacity ({e.status} {e.code}); will retry on the next run.")
-            write_output("created", "no")
-            return
-        raise
+    details = oci.core.models.LaunchInstanceDetails(
+        compartment_id=tenancy, availability_domain=ad, display_name=NAME, shape=SHAPE,
+        shape_config=oci.core.models.LaunchInstanceShapeConfigDetails(ocpus=OCPUS, memory_in_gbs=MEMORY_GB),
+        source_details=oci.core.models.InstanceSourceViaImageDetails(image_id=image_id, boot_volume_size_in_gbs=BOOT_GB),
+        create_vnic_details=oci.core.models.CreateVnicDetails(subnet_id=subnet_id, assign_public_ip=True),
+        metadata={"ssh_authorized_keys": os.environ["SSH_PUBLIC_KEY"], "user_data": OPEN_WEB_PORTS})
+    for attempt in range(1, ATTEMPTS + 1):
+        try:
+            inst = compute.launch_instance(details).data
+            break
+        except oci.exceptions.ServiceError as e:
+            if not is_capacity_error(e):
+                raise
+            print(f"Attempt {attempt}/{ATTEMPTS}: out of capacity ({e.status} {e.code}).")
+            if attempt == ATTEMPTS:
+                write_output("created", "no")
+                return
+            time.sleep(GAP_SECONDS)
 
     print(f"Launched {inst.id}; waiting for RUNNING...")
     oci.wait_until(compute, compute.get_instance(inst.id), "lifecycle_state", "RUNNING", max_wait_seconds=900)

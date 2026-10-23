@@ -2,8 +2,8 @@ name: Hunt Oracle free server
 
 on:
   schedule:
-    # shortcut: every 30 min keeps a private repo inside GitHub's 2,000 free minutes/month; make the repo public to run every 5 min
-    - cron: "7,37 * * * *"
+    # GitHub's minimum; each run makes 4 tries 60s apart (public repo = unlimited free minutes)
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
