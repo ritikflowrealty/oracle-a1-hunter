@@ -1,4 +1,4 @@
-name: Hunt Oracle free server
+name: Hunt Oracle free server  # schedule re-registered
 
 on:
   schedule:
