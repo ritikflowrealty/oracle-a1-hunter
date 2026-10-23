@@ -1,4 +1,4 @@
-name: Hunt Oracle free server  # schedule re-registered
+name: Hunt Oracle free server
 
 on:
   schedule:
@@ -49,3 +49,10 @@ jobs:
 
           Ports 22, 80 and 443 are open in Oracle's firewall. This workflow has now disabled itself."
           gh workflow disable hunt.yml --repo "$GITHUB_REPOSITORY"
+      # GitHub's cron is often delayed for long stretches, so each capacity miss queues the next run itself.
+      # workflow_dispatch is one of the few events GITHUB_TOKEN is allowed to trigger.
+      - name: Queue next run
+        if: steps.hunt.outputs.created == 'no'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run hunt.yml --repo "$GITHUB_REPOSITORY" --ref main
