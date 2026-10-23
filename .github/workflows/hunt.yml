@@ -2,7 +2,7 @@ name: Hunt Oracle free server
 
 on:
   schedule:
-    # GitHub's minimum; each run makes 4 tries 60s apart (public repo = unlimited free minutes)
+    # GitHub's minimum; each run makes 2 tries 2 min apart, so roughly one try every ~2.5 min (public repo = unlimited free minutes)
     - cron: "*/5 * * * *"
   workflow_dispatch:
 

@@ -14,7 +14,7 @@ NAME = "free-server"
 SHAPE = "VM.Standard.A1.Flex"
 OCPUS, MEMORY_GB, BOOT_GB = 2, 12, 200  # the whole Always Free A1 allowance
 VCN_NAME = "free-server-vcn"
-ATTEMPTS, GAP_SECONDS = 4, 60  # ~1 try/minute: about as fast as Oracle tolerates before "too many requests"
+ATTEMPTS, GAP_SECONDS = 2, 120  # 60s gaps got 429 TooManyRequests on every second try; 2 min is the safe floor
 # Oracle's Ubuntu images block 80/443 in iptables; open them on first boot.
 OPEN_WEB_PORTS = base64.b64encode(b"""#!/bin/bash
 iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
