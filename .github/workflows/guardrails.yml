@@ -1,0 +1,26 @@
+name: Apply Always Free guardrails
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guardrails:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet oci==2.*
+      - run: python guardrails.py
+        env:
+          OCI_TENANCY_OCID: ocid1.tenancy.oc1..aaaaaaaa6oqshr2yitxerd4okrxuo6qqfnccjz74xqyomwkfsw4xgpe446va
+          OCI_USER_OCID: ocid1.user.oc1..aaaaaaaanvvlkuppjhrdq6wx24hmgjewnz6j42dudli544fojljqu2telesa
+          OCI_FINGERPRINT: "90:7b:2d:3a:42:72:8a:e4:5c:3d:d8:34:e6:6f:47:72"
+          OCI_REGION: ap-hyderabad-1
+          OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+          ALERT_EMAIL: ritiksac@gmail.com
