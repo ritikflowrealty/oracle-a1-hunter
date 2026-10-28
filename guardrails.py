@@ -12,8 +12,10 @@ QUOTA_NAME = "always-free-only"
 QUOTA_STATEMENTS = [
     "zero compute-core quotas in tenancy",
     "set compute-core quota standard-a1-core-count to 2 in tenancy",
+    "set compute-core quota standard-a1-core-regional-count to 2 in tenancy",  # A1 launches check this one
     "zero compute-memory quotas in tenancy",
     "set compute-memory quota standard-a1-memory-count to 12 in tenancy",
+    "set compute-memory quota standard-a1-memory-regional-count to 12 in tenancy",
     "set block-storage quota total-storage-gb to 200 in tenancy",
 ]
 BUDGET_NAME = "stay-free"
